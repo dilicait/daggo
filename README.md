@@ -1,9 +1,12 @@
-# daggo
+daggo
+![GitHub License](https://img.shields.io/github/license/dilicait/daggo)
+![tests](https://github.com/dilicait/daggo/actions/workflows/tests.yaml/badge.svg)
+=====
 
 Go DAG scheduler.
 
-This repository provides a Go library for scheduling Directed Acyclic Graphs (DAGs) using a modified Heterogeneous Earliest Finish Time (HEFT) algorithm.  
-This implementation assumes homogeneous workers (processors), meaning job execution time is consistent across all processors.
+This repository provides a Go library for scheduling Directed Acyclic Graphs (DAGs) using a modified [Heterogeneous Earliest Finish Time](https://en.wikipedia.org/wiki/Heterogeneous_earliest_finish_time) (HEFT) algorithm.  
+This implementation assumes homogeneous workers, meaning job execution time is consistent across all processors.
 
 ## Install
 
