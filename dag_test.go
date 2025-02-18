@@ -10,9 +10,9 @@ func TestDAG(t *testing.T) {
 	j3 := dag.MakeJob(Job{})
 	j4 := dag.MakeJob(Job{})
 
-	dag.LinkFromValues(j1, j2, 10)
-	dag.LinkFromValues(j2, j3, 20)
-	dag.LinkFromValues(j1, j4, 30)
+	dag.LinkWithTime(j1, j2, 10)
+	dag.LinkWithTime(j2, j3, 20)
+	dag.LinkWithTime(j1, j4, 30)
 
 	roots := dag.Roots()
 	if len(roots) != 1 {
@@ -20,7 +20,7 @@ func TestDAG(t *testing.T) {
 	}
 
 	root := roots[0]
-	rootc := dag.Next(root.ID)
+	rootc := dag.OutLinks(root.ID)
 	if len(rootc) != 2 {
 		t.Errorf("root has %v next childs, expected 2", len(rootc))
 	}
@@ -30,7 +30,7 @@ func TestDAG(t *testing.T) {
 		t.Errorf("wrong DAG leaves number, got %v expected 2", len(leaves))
 	}
 
-	links := dag.Next(j2.ID)
+	links := dag.OutLinks(j2.ID)
 	if len(links) != 1 {
 		t.Errorf("bad link number for j2, got %v expected 1", len(links))
 	}

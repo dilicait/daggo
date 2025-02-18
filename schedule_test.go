@@ -15,11 +15,11 @@ func TestRanku(t *testing.T) {
 	j4 := dag.MakeJob(Job{})
 	j5 := dag.MakeJob(Job{})
 
-	dag.LinkFromValues(j1, j2, 10)
-	dag.LinkFromValues(j2, j3, 20)
-	dag.LinkFromValues(j1, j4, 30)
-	dag.LinkFromValues(j4, j5, 10)
-	dag.LinkFromValues(j3, j5, 10)
+	dag.LinkWithTime(j1, j2, 10)
+	dag.LinkWithTime(j2, j3, 20)
+	dag.LinkWithTime(j1, j4, 30)
+	dag.LinkWithTime(j4, j5, 10)
+	dag.LinkWithTime(j3, j5, 10)
 
 	opts := ScheduleOpts{}
 
@@ -82,15 +82,15 @@ func TestScheduleDualWorker(t *testing.T) {
 	j7 := dag.MakeJob(Job{ExecutionTime: 10})
 
 	// first branch
-	dag.LinkFromValues(j0, j1, 1)
-	dag.LinkFromValues(j1, j3, 1)
-	dag.LinkFromValues(j3, j5, 1)
-	dag.LinkFromValues(j5, j7, 1)
+	dag.LinkWithTime(j0, j1, 1)
+	dag.LinkWithTime(j1, j3, 1)
+	dag.LinkWithTime(j3, j5, 1)
+	dag.LinkWithTime(j5, j7, 1)
 
 	// second branch
-	dag.LinkFromValues(j0, j2, 1)
-	dag.LinkFromValues(j2, j4, 1)
-	dag.LinkFromValues(j4, j6, 1)
+	dag.LinkWithTime(j0, j2, 1)
+	dag.LinkWithTime(j2, j4, 1)
+	dag.LinkWithTime(j4, j6, 1)
 
 	opts := ScheduleOpts{
 		Workers: 2,
@@ -123,16 +123,16 @@ func TestConsumerAPI(t *testing.T) {
 	j7 := dag.MakeJob(Job{ExecutionTime: 2})
 
 	// first branch
-	dag.LinkFromValues(j0, j1, 1)
-	dag.LinkFromValues(j1, j3, 1)
-	dag.LinkFromValues(j3, j5, 1)
-	dag.LinkFromValues(j5, j7, 1)
+	dag.LinkWithTime(j0, j1, 1)
+	dag.LinkWithTime(j1, j3, 1)
+	dag.LinkWithTime(j3, j5, 1)
+	dag.LinkWithTime(j5, j7, 1)
 
 	// second branch
-	dag.LinkFromValues(j0, j2, 1)
-	dag.LinkFromValues(j2, j4, 1)
-	dag.LinkFromValues(j4, j6, 1)
-	dag.LinkFromValues(j6, j7, 1)
+	dag.LinkWithTime(j0, j2, 1)
+	dag.LinkWithTime(j2, j4, 1)
+	dag.LinkWithTime(j4, j6, 1)
+	dag.LinkWithTime(j6, j7, 1)
 
 	opts := ScheduleOpts{
 		Workers: 2,

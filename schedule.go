@@ -47,7 +47,7 @@ func (p *Plan) NextJobForWorker(worker int) chan Job {
 func (p *Plan) Done(jobID string) {
 	claim.Pre(len(jobID) > 0)
 
-	links := p.dag.Next(jobID)
+	links := p.dag.OutLinks(jobID)
 
 	// This mutex is required since p.schedule
 	// can be accessed concurrenly by several goroutines.
@@ -121,7 +121,7 @@ func Schedule(dag DAG, opts ScheduleOpts) (*Plan, error) {
 
 var InvalidRank float32 = -1
 
-// eXtended job structure, used mainly to sort ranked jobs
+// eXtended job structure, used mainly to perform scheduling on jobs.
 type xjob struct {
 	Job
 	// Rank (upward) value
@@ -147,14 +147,15 @@ func (s *schedule) Job(jobID string) xjob {
 	return xjob{}
 }
 
-// Computes start and end time for a given job on a specified worker.
+// scheduleInternal computes start and end time for a given job on a specified worker.
 //
 // This function assumes that s (schedule) is sorted by job start time (lower to higher).
-func scheduleTimes(dag DAG, job xjob, worker int, s schedule) (start, end float32) {
+func scheduleInterval(dag DAG, job xjob, worker int, s schedule) (start, end float32) {
+	links := dag.InLinks(job.ID)
 
-	links := dag.Prev(job.ID)
-
-	// compute readyTime for this worker
+	// compute the readyTime for the pair (worker, job).
+	// readyTime is the minimum time for which a job can be scheduled on
+	// this worker.
 	readyTime := float32(0)
 	for _, link := range links {
 		j := s.Job(link.JobID)
@@ -162,7 +163,6 @@ func scheduleTimes(dag DAG, job xjob, worker int, s schedule) (start, end float3
 		if j.Worker == worker {
 			v = j.EndTime
 		} else {
-			// for other workers add data exchange time
 			v = j.EndTime + link.DataExchangeTime
 		}
 		if readyTime < v {
@@ -170,7 +170,7 @@ func scheduleTimes(dag DAG, job xjob, worker int, s schedule) (start, end float3
 		}
 	}
 
-	// check if there is an available scheduling gap after readyTime
+	// check if there is an available scheduling gap after readyTime.
 	for i := 0; i < len(s[worker])-1; i++ {
 		st := s[worker][i+1].StartTime
 		et := s[worker][i].EndTime
@@ -179,6 +179,8 @@ func scheduleTimes(dag DAG, job xjob, worker int, s schedule) (start, end float3
 		}
 	}
 
+	// if no gap is found return max between readyTime and
+	// EndTime of the latest job on schedule.
 	lwi := len(s[worker]) - 1 // last worker index
 	st := readyTime           // start time
 
@@ -191,7 +193,6 @@ func scheduleTimes(dag DAG, job xjob, worker int, s schedule) (start, end float3
 
 // Allocate jobs on workers.
 func allocate(dag DAG, jobs []xjob, opts ScheduleOpts) schedule {
-
 	sched := make(schedule, opts.Workers)
 	for i := range opts.Workers {
 		sched[i] = make([]xjob, 0)
@@ -201,7 +202,7 @@ func allocate(dag DAG, jobs []xjob, opts ScheduleOpts) schedule {
 		job.EndTime = float32(math.MaxFloat32)
 
 		for worker := range opts.Workers {
-			st, et := scheduleTimes(dag, job, worker, sched)
+			st, et := scheduleInterval(dag, job, worker, sched)
 			if job.EndTime > et {
 				job.StartTime = st
 				job.EndTime = et
@@ -221,7 +222,7 @@ func allocate(dag DAG, jobs []xjob, opts ScheduleOpts) schedule {
 	return sched
 }
 
-// ranku refturns a slice of ranked jobs, from job with higher ranking to lower
+// ranku returns a slice of ranked jobs, from job with higher ranking to lower
 func ranku(dag DAG, opts ScheduleOpts) []xjob {
 	claim.Pre(len(dag.Jobs) > 0)
 
@@ -248,7 +249,7 @@ func ranku(dag DAG, opts ScheduleOpts) []xjob {
 
 // rankuval computes the rank value for a given node recursively
 func rankuval(dag DAG, j Job, opts ScheduleOpts) float32 {
-	links := dag.Next(j.ID)
+	links := dag.OutLinks(j.ID)
 	if len(links) == 0 {
 		return j.ExecutionTime
 	}

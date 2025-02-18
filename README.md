@@ -50,11 +50,11 @@ roots := dag.Roots()
 // get all DAG leaves
 leaves := dag.Leaves()
 
-// get job outer links
-oe := dag.OuterEdges(j1)
+// get all job's outer links 
+olinks := dag.OutLinks(j1)
 
 // get job inner links
-ie := dag.InnerEdges(j4)
+ilinks := dag.InLinks(j4)
 
 ```
 
@@ -73,19 +73,18 @@ plan, err := daggo.Schedule(dag, opts)
 This is a brief example involving two workers. `daggo.Plan` its designed for concurrent access.
 
 ```go
-
-// define a wait group to avoid termination before completion
 wg := sync.WaitGroup()
 
 worker := func(id int){
     defer wg.Done()
 
+    // Ask for the next scheduled job ...
     for j := range plan.NextJobForWorker(id) {
 
-        // do some work ...
+        // ... do some work ...
+        time.Sleep(time.Seconds * time.Duration(j.ExecutionTime))
 
-        fmt.Printl("worker %v completed job %v", workerID, j.ID)
-        
+        // ... inform the plan that the job is completed
         plan.Done(j.ID)
     }
 }
@@ -99,3 +98,7 @@ wg.Add(2)
 wg.Wait()
 
 ```
+
+## Next Features
+
+- Add `dag.IsAcyclic()` to check if the provided DAG is valid.

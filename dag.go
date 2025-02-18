@@ -29,17 +29,17 @@ type DAG struct {
 	Jobs map[string]Job
 
 	// Links going out from a target node
-	outerLinks map[string][]link
+	outLinks map[string][]link
 	// Links going in from a target node
-	innerLinks map[string][]link
+	inLinks map[string][]link
 }
 
 // MakeDAG create a new DAG
 func MakeDAG() DAG {
 	return DAG{
-		Jobs:       make(map[string]Job, 0),
-		outerLinks: make(map[string][]link, 0),
-		innerLinks: make(map[string][]link, 0),
+		Jobs:     make(map[string]Job, 0),
+		outLinks: make(map[string][]link, 0),
+		inLinks:  make(map[string][]link, 0),
 	}
 }
 
@@ -61,8 +61,8 @@ func (dag *DAG) MakeJob(j Job) Job {
 	}
 
 	dag.Jobs[j.ID] = j
-	dag.outerLinks[j.ID] = make([]link, 0)
-	dag.innerLinks[j.ID] = make([]link, 0)
+	dag.outLinks[j.ID] = make([]link, 0)
+	dag.inLinks[j.ID] = make([]link, 0)
 
 	return j
 }
@@ -71,15 +71,15 @@ func (dag *DAG) MakeJob(j Job) Job {
 //
 // By default the data exchange time will be set to 0.
 func (dag *DAG) Link(from Job, to Job) {
-	dag.LinkFromValues(from, to, 0)
+	dag.LinkWithTime(from, to, 0)
 }
 
 // Creates a new DAG link with specified values.
 //
 // dataExchangeTime is the time used to transfer data between workers at the
 // end of job `from`.
-func (dag *DAG) LinkFromValues(from Job, to Job, dataExchangeTime float32) {
-	v, ok := dag.outerLinks[from.ID]
+func (dag *DAG) LinkWithTime(from Job, to Job, dataExchangeTime float32) {
+	v, ok := dag.outLinks[from.ID]
 	if !ok {
 		v = make([]link, 0, 1)
 	}
@@ -87,9 +87,9 @@ func (dag *DAG) LinkFromValues(from Job, to Job, dataExchangeTime float32) {
 		JobID:            to.ID,
 		DataExchangeTime: dataExchangeTime,
 	})
-	dag.outerLinks[from.ID] = v
+	dag.outLinks[from.ID] = v
 
-	v, ok = dag.innerLinks[to.ID]
+	v, ok = dag.inLinks[to.ID]
 	if !ok {
 		v = make([]link, 0, 1)
 	}
@@ -97,13 +97,13 @@ func (dag *DAG) LinkFromValues(from Job, to Job, dataExchangeTime float32) {
 		JobID:            from.ID,
 		DataExchangeTime: dataExchangeTime,
 	})
-	dag.innerLinks[to.ID] = v
+	dag.inLinks[to.ID] = v
 }
 
 // Roots returns all the DAG roots
 func (dag *DAG) Roots() []Job {
 	out := make([]Job, 0)
-	for id, v := range dag.innerLinks {
+	for id, v := range dag.inLinks {
 		if len(v) == 0 {
 			out = append(out, dag.Jobs[id])
 		}
@@ -115,7 +115,7 @@ func (dag *DAG) Roots() []Job {
 // Leaves return all the DAG leaves
 func (dag *DAG) Leaves() []Job {
 	out := make([]Job, 0)
-	for id, v := range dag.outerLinks {
+	for id, v := range dag.outLinks {
 		if len(v) == 0 {
 			out = append(out, dag.Jobs[id])
 		}
@@ -124,12 +124,12 @@ func (dag *DAG) Leaves() []Job {
 	return out
 }
 
-// Return all the successors jobs in the graph
-func (dag *DAG) Next(jobID string) []link {
-	return dag.outerLinks[jobID]
+// Return all the outgoing links to jobID
+func (dag *DAG) OutLinks(jobID string) []link {
+	return dag.outLinks[jobID]
 }
 
-// Return all the preceding jobs in the graph
-func (dag *DAG) Prev(jobID string) []link {
-	return dag.innerLinks[jobID]
+// Return all the incoming links to jobID
+func (dag *DAG) InLinks(jobID string) []link {
+	return dag.inLinks[jobID]
 }
